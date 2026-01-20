@@ -84,7 +84,7 @@ const App: React.FC = () => {
               onClick={handleFetch}
               disabled={status === AppStatus.FETCHING_REDDIT}
               className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-full transition-all"
-              title="重新加载数据"
+              title="刷新数据"
             >
               <i className={`fas fa-sync-alt ${status === AppStatus.FETCHING_REDDIT ? 'fa-spin text-indigo-600' : ''}`}></i>
             </button>
@@ -105,10 +105,8 @@ const App: React.FC = () => {
           <div className="mb-8 bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start space-x-3">
             <i className="fas fa-triangle-exclamation text-amber-500 mt-1"></i>
             <div>
-              <h4 className="text-sm font-bold text-amber-900">检测到配置缺失</h4>
-              <p className="text-xs text-amber-700 mt-1">
-                环境变量 API_KEY 未设置。AI 分析功能暂时无法启用。
-              </p>
+              <h4 className="text-sm font-bold text-amber-900">AI 分析受限</h4>
+              <p className="text-xs text-amber-700 mt-1">请在环境变量中配置 API_KEY 以解锁 AI 拆解功能。</p>
             </div>
           </div>
         )}
@@ -127,34 +125,45 @@ const App: React.FC = () => {
 
         {status === AppStatus.FETCHING_REDDIT && posts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="mt-4 text-slate-600 font-bold">正在轮询 5 种网络方案连接 Reddit...</p>
-            <p className="mt-2 text-[11px] text-slate-400">已自动延长等待时间至 15s 以适配慢速通道</p>
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <i className="fas fa-satellite-dish text-indigo-400"></i>
+              </div>
+            </div>
+            <p className="mt-6 text-slate-600 font-bold">正在执行全球链路穿透...</p>
+            <p className="mt-2 text-[11px] text-slate-400 font-mono">尝试随机通道中，每个节点等待上限 12s</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-white border-2 border-red-100 rounded-3xl p-10 text-center max-w-xl mx-auto mb-10 shadow-2xl shadow-red-50">
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-               <i className="fas fa-clock-rotate-left text-2xl"></i>
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 text-center max-w-2xl mx-auto mb-10 shadow-xl">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+               <i className="fas fa-shield-virus text-3xl"></i>
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">网络链路响应中断</h3>
-            <div className="bg-slate-50 p-4 rounded-xl mb-8 text-left">
-               <p className="text-slate-600 text-xs font-mono break-words leading-relaxed">
-                  {error}
-               </p>
+            <h3 className="text-2xl font-black text-slate-900 mb-4">Reddit 数据抓取受阻</h3>
+            
+            <div className="bg-slate-900 rounded-2xl p-6 mb-8 text-left">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">错误报告 (Diagnosis)</span>
+                <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-bold uppercase">Critical</span>
+              </div>
+              <p className="text-red-400 text-xs font-mono leading-relaxed whitespace-pre-wrap">
+                {error}
+              </p>
             </div>
-            <div className="space-y-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button 
                 onClick={handleFetch}
-                className="w-full bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl active:scale-95"
+                className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-center"
               >
-                再次刷新通道
+                <i className="fas fa-sync-alt mr-2"></i>
+                重组链路再试一次
               </button>
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest leading-relaxed">
-                如果您看到 "AbortError"，说明代理服务器响应超过 15 秒。<br/>
-                建议切换您的全局网络节点后重试。
-              </p>
+              <div className="bg-slate-100 px-6 py-4 rounded-2xl text-xs text-slate-500 flex items-center justify-center font-medium">
+                建议：开启全局代理 (VPN)
+              </div>
             </div>
           </div>
         )}
