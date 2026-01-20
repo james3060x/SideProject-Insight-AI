@@ -13,6 +13,9 @@ const App: React.FC = () => {
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
+  // 系统健康度检查
+  const isKeyConfigured = process.env.API_KEY && process.env.API_KEY !== 'undefined';
+
   const handleFetch = async () => {
     try {
       setStatus(AppStatus.FETCHING_REDDIT);
@@ -69,7 +72,12 @@ const App: React.FC = () => {
               <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
                 SideProject Insight AI
               </h1>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Trends Decoder</p>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Trends</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded ${isKeyConfigured ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} font-bold`}>
+                  {isKeyConfigured ? 'AI READY' : 'KEY MISSING'}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -83,7 +91,7 @@ const App: React.FC = () => {
             <button 
               onClick={analyzeAll}
               disabled={posts.length === 0 || status === AppStatus.FETCHING_REDDIT}
-              className="hidden sm:flex bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg"
+              className="hidden sm:flex bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
             >
               <i className="fas fa-magic mr-2"></i>
               全部分解
@@ -93,32 +101,53 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {!isKeyConfigured && (
+          <div className="mb-8 bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start space-x-3">
+            <i className="fas fa-triangle-exclamation text-amber-500 mt-1"></i>
+            <div>
+              <h4 className="text-sm font-bold text-amber-900">检测到配置缺失</h4>
+              <p className="text-xs text-amber-700 mt-1">
+                环境变量 API_KEY 未设置。Reddit 列表仍可预览，但 AI 分析功能无法启用。
+                请在 Vercel 后台配置后再试。
+              </p>
+            </div>
+          </div>
+        )}
+
         <NewsletterSection />
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">今日热门项目</h2>
-          <p className="text-slate-500 font-medium">实时抓取 Reddit 高赞灵感，Gemini 智能商业拆解。</p>
+        <div className="mb-8 flex justify-between items-end">
+          <div>
+            <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">今日热门项目</h2>
+            <p className="text-slate-500 font-medium">实时抓取 Reddit 灵感，Gemini 全自动商业拆解。</p>
+          </div>
+          <div className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-pulse">
+            LIVE UPDATE
+          </div>
         </div>
 
         {status === AppStatus.FETCHING_REDDIT && posts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
             <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="mt-4 text-slate-500 font-bold">正在同步 Reddit 数据...</p>
+            <p className="mt-4 text-slate-500 font-bold">正在安全穿透代理获取 Reddit 数据...</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-white border-2 border-red-100 rounded-3xl p-8 text-center max-w-xl mx-auto mb-10 shadow-xl shadow-red-50">
-            <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-               <i className="fas fa-exclamation-circle text-xl"></i>
+          <div className="bg-white border-2 border-red-100 rounded-3xl p-10 text-center max-w-xl mx-auto mb-10 shadow-2xl shadow-red-50">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+               <i className="fas fa-plug-circle-xmark text-2xl"></i>
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">服务不可用</h3>
-            <p className="text-slate-500 text-sm mb-6">{error}</p>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">网络链路中断</h3>
+            <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+              {error}<br/>
+              <span className="text-[10px] text-slate-400 mt-2 block uppercase font-bold tracking-tighter">此报错可能由于某些浏览器插件拦截了跨域请求引起</span>
+            </p>
             <button 
               onClick={handleFetch}
-              className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+              className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl active:scale-95"
             >
-              重试加载
+              重新连接系统
             </button>
           </div>
         )}
