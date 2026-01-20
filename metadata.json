@@ -1,0 +1,5 @@
+{
+  "name": "SideProject Insight AI",
+  "description": "An AI-powered dashboard that tracks the top 20 trending projects from r/SideProject, translates them to Chinese, and generates structured business insights and AI-ready development prompts.",
+  "requestFramePermissions": []
+}
