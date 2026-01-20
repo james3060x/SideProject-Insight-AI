@@ -25,6 +25,11 @@ export interface AIReadyPrompt {
   developerPrompt: string;
 }
 
+export interface NewsletterDigest {
+  subject: string;
+  htmlContent: string;
+}
+
 export enum AppStatus {
   IDLE = 'IDLE',
   FETCHING_REDDIT = 'FETCHING_REDDIT',

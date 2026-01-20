@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchTrendingSideProjects } from './services/redditService';
 import { analyzeProject } from './services/geminiService';
 import { RedditPost, AIReadyPrompt, AppStatus } from './types';
 import ProjectCard from './components/ProjectCard';
+import NewsletterSection from './components/NewsletterSection';
 
 const App: React.FC = () => {
   const [posts, setPosts] = useState<RedditPost[]>([]);
@@ -35,7 +36,6 @@ const App: React.FC = () => {
       setAnalyzedData(prev => ({ ...prev, [post.id]: insight }));
     } catch (err) {
       console.error('AI Analysis failed:', err);
-      // Fail silently for individual card, user can retry
     } finally {
       setAnalyzingIds(prev => {
         const next = new Set(prev);
@@ -46,7 +46,6 @@ const App: React.FC = () => {
   };
 
   const analyzeAll = async () => {
-    // Only analyze what isn't analyzed yet
     const postsToAnalyze = posts.filter(p => !analyzedData[p.id]);
     for (const post of postsToAnalyze) {
       await handleAnalyze(post);
@@ -94,8 +93,12 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Newsletter Section */}
+        <NewsletterSection />
+
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
