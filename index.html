@@ -4,14 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 指示某些翻译插件不要翻译此页面以减少干扰 -->
+    <meta name="translate" content="no">
     <title>SideProject Insight AI</title>
-    <!-- 添加内联 Favicon 解决 404 报错 -->
+    <!-- 内联 Favicon 解决 404 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; min-height: 100vh; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            min-height: 100vh; 
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+        }
     </style>
 <script type="importmap">
 {
@@ -25,6 +33,7 @@
 </script>
 </head>
 <body class="bg-slate-50 text-slate-900">
-    <div id="root"></div>
+    <!-- 显式包裹容器以确保插件能检测到有效的 DOM 结构 -->
+    <div id="root" class="min-h-screen"></div>
 </body>
 </html>

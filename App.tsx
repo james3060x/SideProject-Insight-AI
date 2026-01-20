@@ -13,7 +13,6 @@ const App: React.FC = () => {
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  // 系统健康度检查
   const isKeyConfigured = process.env.API_KEY && process.env.API_KEY !== 'undefined';
 
   const handleFetch = async () => {
@@ -24,7 +23,7 @@ const App: React.FC = () => {
       setPosts(data);
       setStatus(AppStatus.SUCCESS);
     } catch (err: any) {
-      console.error('Fetch error:', err);
+      console.error('Fetch error details:', err);
       setError(err.message || '获取 Reddit 数据失败。');
       setStatus(AppStatus.ERROR);
     }
@@ -85,6 +84,7 @@ const App: React.FC = () => {
               onClick={handleFetch}
               disabled={status === AppStatus.FETCHING_REDDIT}
               className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-full transition-all"
+              title="重新加载数据"
             >
               <i className={`fas fa-sync-alt ${status === AppStatus.FETCHING_REDDIT ? 'fa-spin text-indigo-600' : ''}`}></i>
             </button>
@@ -107,8 +107,7 @@ const App: React.FC = () => {
             <div>
               <h4 className="text-sm font-bold text-amber-900">检测到配置缺失</h4>
               <p className="text-xs text-amber-700 mt-1">
-                环境变量 API_KEY 未设置。Reddit 列表仍可预览，但 AI 分析功能无法启用。
-                请在 Vercel 后台配置后再试。
+                环境变量 API_KEY 未设置。AI 分析功能暂时无法启用。
               </p>
             </div>
           </div>
@@ -119,7 +118,7 @@ const App: React.FC = () => {
         <div className="mb-8 flex justify-between items-end">
           <div>
             <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">今日热门项目</h2>
-            <p className="text-slate-500 font-medium">实时抓取 Reddit 灵感，Gemini 全自动商业拆解。</p>
+            <p className="text-slate-500 font-medium">抓取 Reddit r/SideProject 24h 内高赞贴。</p>
           </div>
           <div className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 animate-pulse">
             LIVE UPDATE
@@ -129,26 +128,34 @@ const App: React.FC = () => {
         {status === AppStatus.FETCHING_REDDIT && posts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
             <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="mt-4 text-slate-500 font-bold">正在安全穿透代理获取 Reddit 数据...</p>
+            <p className="mt-4 text-slate-600 font-bold">正在轮询 5 种网络方案连接 Reddit...</p>
+            <p className="mt-2 text-[11px] text-slate-400">已自动延长等待时间至 15s 以适配慢速通道</p>
           </div>
         )}
 
         {error && (
           <div className="bg-white border-2 border-red-100 rounded-3xl p-10 text-center max-w-xl mx-auto mb-10 shadow-2xl shadow-red-50">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-               <i className="fas fa-plug-circle-xmark text-2xl"></i>
+               <i className="fas fa-clock-rotate-left text-2xl"></i>
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">网络链路中断</h3>
-            <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-              {error}<br/>
-              <span className="text-[10px] text-slate-400 mt-2 block uppercase font-bold tracking-tighter">此报错可能由于某些浏览器插件拦截了跨域请求引起</span>
-            </p>
-            <button 
-              onClick={handleFetch}
-              className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl active:scale-95"
-            >
-              重新连接系统
-            </button>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">网络链路响应中断</h3>
+            <div className="bg-slate-50 p-4 rounded-xl mb-8 text-left">
+               <p className="text-slate-600 text-xs font-mono break-words leading-relaxed">
+                  {error}
+               </p>
+            </div>
+            <div className="space-y-4">
+              <button 
+                onClick={handleFetch}
+                className="w-full bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-xl active:scale-95"
+              >
+                再次刷新通道
+              </button>
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest leading-relaxed">
+                如果您看到 "AbortError"，说明代理服务器响应超过 15 秒。<br/>
+                建议切换您的全局网络节点后重试。
+              </p>
+            </div>
           </div>
         )}
 

@@ -4,8 +4,12 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 /**
- * 排除法：彻底屏蔽非业务代码产生的控制台噪音
- * 针对：Vercel Toolbar, 沉浸式翻译插件, 浏览器 Favicon 请求
+ * 核心：极致控制台清理器
+ * 针对性拦截：
+ * 1. Tailwind CDN 生产环境警告
+ * 2. 浏览器插件产生的 'default: XXX ms' 性能日志
+ * 3. 沉浸式翻译 (Immersive Translate) 插件报错
+ * 4. Vercel Toolbar 内部通讯噪音
  */
 if (typeof window !== 'undefined') {
   const originalWarn = console.warn;
@@ -18,11 +22,19 @@ if (typeof window !== 'undefined') {
     'Immersive Translate',
     'favicon.ico',
     '_next-live',
-    'feedback.html'
+    'feedback.html',
+    'cdn.tailwindcss.com', // 拦截 Tailwind 生产环境警告
+    'tailwindcss'
   ];
 
   const isNoise = (args: any[]) => {
-    const message = args.map(arg => String(arg)).join(' ');
+    const message = args.map(arg => {
+      try {
+        return typeof arg === 'string' ? arg : JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    }).join(' ');
     return noiseKeywords.some(keyword => message.includes(keyword));
   };
 
@@ -37,10 +49,20 @@ if (typeof window !== 'undefined') {
   };
 
   console.log = (...args) => {
-    // 屏蔽特定的 default: XX ms 噪音
-    if (args[0] === 'default' && typeof args[1] === 'number') return;
+    // 特别处理 'default: 0.123 ms' 这种形式的日志 (来自插件或 timeEnd)
+    const firstArg = String(args[0]);
+    if (firstArg.startsWith('default:') || (firstArg === 'default' && typeof args[1] === 'number')) {
+      return;
+    }
     if (isNoise(args)) return;
     originalLog(...args);
+  };
+
+  // 尝试劫持 console.info 处理沉浸式翻译的 INFO 级别日志
+  const originalInfo = console.info;
+  console.info = (...args) => {
+    if (isNoise(args)) return;
+    originalInfo(...args);
   };
 }
 
@@ -56,7 +78,12 @@ const renderApp = () => {
   );
 };
 
-// 确保 DOM 完全加载后再挂载，防止插件检测不到 body
+// 预热 body 结构，防止插件因为 body 检测延迟报错
+if (!document.body) {
+  const body = document.createElement('body');
+  document.documentElement.appendChild(body);
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', renderApp);
 } else {
