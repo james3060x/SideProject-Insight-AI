@@ -1,42 +1,66 @@
 
 import { RedditPost } from '../types';
 
+/**
+ * Fetches the top 20 posts from r/SideProject for the last 24 hours.
+ * Uses multiple CORS proxies as fallbacks to ensure reliability.
+ */
 export const fetchTrendingSideProjects = async (): Promise<RedditPost[]> => {
-  try {
-    // Reddit API does not allow direct cross-origin requests from the browser.
-    // We use a CORS proxy to bypass this restriction.
-    const redditUrl = 'https://www.reddit.com/r/SideProject/top.json?t=day&limit=20';
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(redditUrl)}`;
-    
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Reddit API returned status: ${response.status}. This might be a temporary issue with the CORS proxy or Reddit.`);
+  const redditUrl = 'https://www.reddit.com/r/SideProject/top.json?t=day&limit=20';
+  
+  // List of public CORS proxies to try
+  const proxies = [
+    (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+
+  let lastError: any = null;
+
+  for (const getProxyUrl of proxies) {
+    try {
+      const response = await fetch(getProxyUrl(redditUrl));
+      
+      if (!response.ok) {
+        throw new Error(`Proxy returned status: ${response.status}`);
+      }
+
+      const rawData = await response.json();
+      
+      // AllOrigins returns data in a 'contents' field as a stringified JSON
+      let data;
+      if (rawData.contents) {
+        data = JSON.parse(rawData.contents);
+      } else {
+        data = rawData;
+      }
+
+      if (!data || !data.data || !data.data.children) {
+        throw new Error('Invalid Reddit data structure');
+      }
+
+      return data.data.children.map((child: any) => ({
+        id: child.data.id,
+        title: child.data.title,
+        author: child.data.author,
+        selftext: child.data.selftext || '',
+        url: child.data.url,
+        permalink: `https://reddit.com${child.data.permalink}`,
+        score: child.data.score,
+        num_comments: child.data.num_comments,
+        created_utc: child.data.created_utc,
+      }));
+    } catch (error) {
+      console.warn(`Failed to fetch using proxy: ${getProxyUrl(redditUrl)}`, error);
+      lastError = error;
+      // Continue to next proxy
     }
-    
-    const data = await response.json();
-    
-    if (!data || !data.data || !data.data.children) {
-      throw new Error('Invalid data structure received from Reddit.');
-    }
-    
-    return data.data.children.map((child: any) => ({
-      id: child.data.id,
-      title: child.data.title,
-      author: child.data.author,
-      selftext: child.data.selftext || '',
-      url: child.data.url,
-      permalink: `https://reddit.com${child.data.permalink}`,
-      score: child.data.score,
-      num_comments: child.data.num_comments,
-      created_utc: child.data.created_utc,
-    }));
-  } catch (error) {
-    console.error('Error fetching Reddit data:', error);
-    // Rethrow a more user-friendly error message if it's a generic "Failed to fetch"
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('无法连接到 Reddit。这通常是由于浏览器跨域 (CORS) 限制导致的。请检查网络或稍后再试。');
-    }
-    throw error;
   }
+
+  // If we reach here, all proxies failed
+  console.error('All CORS proxies failed to fetch Reddit data.');
+  throw new Error(
+    lastError?.message === 'Failed to fetch' 
+      ? '无法连接到 Reddit 数据源。请检查网络连接或尝试关闭可能干扰请求的浏览器扩展（如广告拦截插件）。' 
+      : '数据同步失败，Reddit API 目前无法通过代理访问，请稍后再试。'
+  );
 };
