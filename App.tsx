@@ -20,22 +20,22 @@ const App: React.FC = () => {
       const data = await fetchTrendingSideProjects();
       setPosts(data);
       setStatus(AppStatus.SUCCESS);
-    } catch (err) {
-      console.error(err);
-      setError('无法获取 Reddit 数据。这可能是由于 CORS 限制或网络问题。请尝试刷新。');
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      setError(err.message || '获取数据失败，请稍后刷新页面。');
       setStatus(AppStatus.ERROR);
     }
   };
 
   const handleAnalyze = async (post: RedditPost) => {
     if (analyzingIds.has(post.id)) return;
-
     setAnalyzingIds(prev => new Set(prev).add(post.id));
     try {
       const insight = await analyzeProject(post);
       setAnalyzedData(prev => ({ ...prev, [post.id]: insight }));
     } catch (err) {
       console.error('AI Analysis failed:', err);
+      alert('AI 分析失败，请检查 API Key 权限或稍后重试。');
     } finally {
       setAnalyzingIds(prev => {
         const next = new Set(prev);
@@ -46,6 +46,7 @@ const App: React.FC = () => {
   };
 
   const analyzeAll = async () => {
+    if (posts.length === 0) return;
     const postsToAnalyze = posts.filter(p => !analyzedData[p.id]);
     for (const post of postsToAnalyze) {
       await handleAnalyze(post);
@@ -58,8 +59,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="bg-indigo-600 p-2 rounded-lg">
@@ -69,75 +69,77 @@ const App: React.FC = () => {
               <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
                 SideProject Insight AI
               </h1>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Reddit r/SideProject Trends</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Trends Decoder</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <button 
               onClick={handleFetch}
               disabled={status === AppStatus.FETCHING_REDDIT}
-              className="p-2 text-slate-600 hover:text-indigo-600 transition-colors"
+              className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-full transition-all"
               title="刷新数据"
             >
-              <i className={`fas fa-sync-alt ${status === AppStatus.FETCHING_REDDIT ? 'fa-spin' : ''}`}></i>
+              <i className={`fas fa-sync-alt ${status === AppStatus.FETCHING_REDDIT ? 'fa-spin text-indigo-600' : ''}`}></i>
             </button>
             <button 
               onClick={analyzeAll}
               disabled={posts.length === 0 || status === AppStatus.FETCHING_REDDIT}
-              className="hidden sm:flex bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed items-center"
+              className="hidden sm:flex bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed items-center shadow-lg shadow-indigo-200"
             >
-              <i className="fas fa-wand-magic-sparkles mr-2"></i>
-              一键分析全榜
+              <i className="fas fa-magic mr-2"></i>
+              解析当前全部
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Newsletter Section */}
         <NewsletterSection />
 
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              今日全球热门独立项目
+            <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">
+              Reddit 今日热门项目榜
             </h2>
-            <p className="text-slate-600 max-w-2xl">
-              实时追踪 Reddit r/SideProject 24小时内高赞项目。利用 Gemini AI 深度解析商业模式，并为你生成直接可用的 AI 开发 Prompt。
+            <p className="text-slate-500 max-w-2xl font-medium">
+              实时同步 r/SideProject 全球独立开发者社区高赞灵感，AI 自动翻译、拆解盈利逻辑。
             </p>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200">
-            <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
-            <span>当前更新: 过去24小时 Top 20</span>
+          <div className="flex items-center space-x-2 text-sm text-slate-500 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+            <span className="font-semibold text-slate-600">过去 24 小时活跃项目</span>
           </div>
         </div>
 
-        {/* Loading / Error States */}
         {status === AppStatus.FETCHING_REDDIT && posts.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-500 font-medium">正在同步 Reddit 热门贴...</p>
+          <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div className="relative">
+               <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+               <i className="fas fa-reddit absolute inset-0 flex items-center justify-center text-indigo-300"></i>
+            </div>
+            <p className="mt-6 text-slate-500 font-bold tracking-tight">正在穿透代理连接 Reddit 数据源...</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-lg mx-auto mb-10">
-            <i className="fas fa-exclamation-triangle text-red-500 text-3xl mb-4"></i>
-            <h3 className="text-lg font-bold text-red-900 mb-2">获取失败</h3>
-            <p className="text-red-700 text-sm mb-4">{error}</p>
-            <button 
-              onClick={handleFetch}
-              className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
-            >
-              重试
-            </button>
+          <div className="bg-white border-2 border-red-100 rounded-3xl p-8 text-center max-w-xl mx-auto mb-10 shadow-xl shadow-red-50">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+               <i className="fas fa-bolt text-2xl"></i>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">连接中断</h3>
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed">{error}</p>
+            <div className="flex justify-center space-x-3">
+              <button 
+                onClick={handleFetch}
+                className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all active:scale-95 shadow-lg"
+              >
+                重试加载
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Project Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map((post) => (
             <ProjectCard
               key={post.id}
@@ -150,21 +152,20 @@ const App: React.FC = () => {
         </div>
 
         {posts.length > 0 && (
-          <div className="mt-12 text-center py-10 border-t border-slate-200">
-            <p className="text-slate-500 text-sm italic">
-              * 灵感来源 Reddit r/SideProject | 由 Gemini AI 提供中文深度解析支持
+          <div className="mt-16 text-center py-12 border-t border-slate-200">
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+              Data Source: Reddit r/SideProject | Powered by Google Gemini 3
             </p>
           </div>
         )}
       </main>
 
-      {/* Bottom Sticky CTA for Mobile */}
-      <div className="fixed bottom-6 right-6 sm:hidden z-50">
+      <div className="fixed bottom-8 right-8 sm:hidden z-50">
         <button 
           onClick={analyzeAll}
-          className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-90"
+          className="bg-indigo-600 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-90"
         >
-          <i className="fas fa-magic"></i>
+          <i className="fas fa-wand-magic-sparkles text-xl"></i>
         </button>
       </div>
     </div>

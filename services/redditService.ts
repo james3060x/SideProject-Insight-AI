@@ -2,40 +2,46 @@
 import { RedditPost } from '../types';
 
 /**
- * Fetches the top 20 posts from r/SideProject for the last 24 hours.
- * Uses multiple CORS proxies as fallbacks to ensure reliability.
+ * 获取 r/SideProject 24小时内的前 20 个热门帖子
+ * 采用多重代理策略，增强在不同网络环境下的稳定性
  */
 export const fetchTrendingSideProjects = async (): Promise<RedditPost[]> => {
   const redditUrl = 'https://www.reddit.com/r/SideProject/top.json?t=day&limit=20';
   
-  // List of public CORS proxies to try
+  // 公共 CORS 代理列表，增加随机因子规避缓存
   const proxies = [
-    (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_=${Date.now()}`,
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
   ];
 
   let lastError: any = null;
 
   for (const getProxyUrl of proxies) {
     try {
-      const response = await fetch(getProxyUrl(redditUrl));
+      console.log(`正在尝试代理: ${getProxyUrl(redditUrl)}`);
+      const response = await fetch(getProxyUrl(redditUrl), {
+        headers: { 'Accept': 'application/json' }
+      });
       
       if (!response.ok) {
-        throw new Error(`Proxy returned status: ${response.status}`);
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const rawData = await response.json();
       
-      // AllOrigins returns data in a 'contents' field as a stringified JSON
+      // 处理不同代理返回的数据格式
       let data;
-      if (rawData.contents) {
+      if (rawData && typeof rawData.contents === 'string') {
         data = JSON.parse(rawData.contents);
+      } else if (rawData && rawData.contents) {
+        data = rawData.contents;
       } else {
         data = rawData;
       }
 
       if (!data || !data.data || !data.data.children) {
-        throw new Error('Invalid Reddit data structure');
+        throw new Error('Reddit 返回数据格式不匹配');
       }
 
       return data.data.children.map((child: any) => ({
@@ -50,17 +56,13 @@ export const fetchTrendingSideProjects = async (): Promise<RedditPost[]> => {
         created_utc: child.data.created_utc,
       }));
     } catch (error) {
-      console.warn(`Failed to fetch using proxy: ${getProxyUrl(redditUrl)}`, error);
+      console.warn('当前代理请求失败:', error);
       lastError = error;
-      // Continue to next proxy
+      continue; // 尝试下一个代理
     }
   }
 
-  // If we reach here, all proxies failed
-  console.error('All CORS proxies failed to fetch Reddit data.');
   throw new Error(
-    lastError?.message === 'Failed to fetch' 
-      ? '无法连接到 Reddit 数据源。请检查网络连接或尝试关闭可能干扰请求的浏览器扩展（如广告拦截插件）。' 
-      : '数据同步失败，Reddit API 目前无法通过代理访问，请稍后再试。'
+    `无法加载数据。原因: ${lastError?.message || '未知网络错误'}。提示：请检查是否开启了广告拦截器，或者尝试稍后刷新。`
   );
 };

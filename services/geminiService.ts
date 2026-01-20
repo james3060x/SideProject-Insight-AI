@@ -2,11 +2,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { RedditPost, AIReadyPrompt } from "../types";
 
-// Fix: Use process.env.API_KEY directly as required by guidelines
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const analyzeProject = async (post: RedditPost): Promise<AIReadyPrompt> => {
-  const ai = getAI();
+  // 直接从 process.env.API_KEY 获取，遵循严格规范
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -20,31 +18,32 @@ export const analyzeProject = async (post: RedditPost): Promise<AIReadyPrompt> =
     请完成以下步骤：
     1. 翻译核心内容为中文，语言要专业且具有洞察力。
     2. 提炼出核心业务要素。
-    3. **重点：** 从正文或附件链接中提取该项目的**官方网站或在线演示地址**（排除 i.redd.it, v.redd.it, reddit.com 等链接，除非那是项目本身）。
-    4. 生成一个适合交给 AI 编程助手（如 Cursor, Windsurf, Artifacts）的详细开发 Prompt。`,
+    3. 提取项目官网或 Demo 地址（排除 reddit 内部链接）。
+    4. 生成一个详细的 Cursor/Windsurf 开发 Prompt。`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          projectName: { type: Type.STRING, description: "项目名称" },
-          projectIntro: { type: Type.STRING, description: "项目介绍" },
-          problemSolved: { type: Type.STRING, description: "解决了什么问题" },
-          customerPersona: { type: Type.STRING, description: "主要目标用户" },
-          solution: { type: Type.STRING, description: "核心解决方案" },
-          externalLink: { type: Type.STRING, description: "项目官方网站或演示 Demo 的完整 URL" },
-          developerPrompt: { type: Type.STRING, description: "AI 代码辅助生成的 Prompt，描述清楚功能模块、技术栈建议和核心交互" }
+          projectName: { type: Type.STRING },
+          projectIntro: { type: Type.STRING },
+          problemSolved: { type: Type.STRING },
+          customerPersona: { type: Type.STRING },
+          solution: { type: Type.STRING },
+          externalLink: { type: Type.STRING },
+          developerPrompt: { type: Type.STRING }
         },
         required: ["projectName", "projectIntro", "problemSolved", "customerPersona", "solution", "developerPrompt"]
       },
     },
   });
 
-  // Fix: response.text is a property, not a method. Ensuring it's not undefined before parsing.
   const text = response.text;
-  if (!text) throw new Error("AI analysis response was empty");
+  if (!text) throw new Error("AI 响应内容为空");
   
-  const result = JSON.parse(text);
+  // 增加对 markdown 代码块包裹的容错
+  const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+  const result = JSON.parse(cleanJson);
   
   let finalExternalLink = result.externalLink;
   if (!finalExternalLink || finalExternalLink.includes('reddit.com') || finalExternalLink.includes('redd.it')) {
